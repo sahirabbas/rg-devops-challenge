@@ -1,0 +1,102 @@
+groups:
+- name: caddymonitoring
+  rules:
+  # Prometheus Target Down
+  - alert: TargetDown
+    expr: up == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Prometheus target is down"
+      description: "The Prometheus target {{ $labels.instance }} is down."
+  # Hig CPU Usage for Caddy
+  - alert: HighCPUUsage
+    expr: process_cpu_seconds_total / count(node_cpu_seconds_total{mode="idle"}) * 100 > 90
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High CPU Usage Detected"
+      description: "CPU usage is consistently above 90% for the last 5 minutes."
+  # High Memory Usage
+  - alert: HighMemoryUsage
+    expr: (go_memstats_heap_inuse_bytes / go_memstats_heap_sys_bytes) * 100 > 90
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Memory Usage Detected"
+      description: "Heap memory usage is consistently above 90% for the last 5 minutes."
+  # HighGoroutineCount
+  - alert: HighGoroutineCount
+    expr: go_goroutines > 100
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High Goroutine Count Detected"
+      description: "The number of goroutines has exceeded 100 for the last 5 minutes."
+  # High GC Duration (Grabage collection Duration)
+  - alert: HighGC_Duration
+    expr: go_gc_duration_seconds_sum > 0.1
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High GC Duration"
+      description: "The garbage collection duration has been high for the last 5 minutes."
+  # Http Error Rate
+  - alert: HighErrorRate
+    expr: rate(caddy_admin_http_requests_total{code="5xx"}[1m]) / rate(caddy_admin_http_requests_total[1m]) > 0.05
+    for: 1m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High HTTP Error Rate"
+      description: "The error rate for HTTP requests has been high for the last 5 minutes."
+  # High Number of Heap Objects
+  - alert: HighHeapObjects
+    expr: go_memstats_heap_objects > 50000
+    for: 5m
+    labels:
+      severity: warning
+    annotations:
+      summary: "High Number of Heap Objects"
+      description: "The number of allocated heap objects is high and may indicate a memory issue."
+  # network health of reverse proxy upstreams
+  - alert: ReverseProxyUpstreamUnhealthy
+    expr: caddy_reverse_proxy_upstreams_healthy == 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Reverse Proxy Upstream Unhealthy"
+      description: "One or more reverse proxy upstreams are unhealthy."
+  # number of open file descriptors
+  - alert: HighFileDescriptors
+    expr: process_open_fds > 0.9 * process_max_fds
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "High Number of Open File Descriptors"
+      description: "The number of open file descriptors is higher than 90% of the maximum allowed."
+  # process restarts
+  - alert: ProcessRestart
+    expr: changes(process_start_time_seconds[1m]) > 0
+    for: 5m
+    labels:
+      severity: critical
+    annotations:
+      summary: "Process Restart Detected"
+      description: "The monitored process has been restarted within the last 5 minutes."
+  # 404 Error Capture
+  - alert: High404ErrorRate
+    expr: rate(caddy_admin_http_requests_total{code="404"}[1m]) > 0
+    labels:
+      severity: critical
+    annotations:
+      summary: "High 404 Error Rate"
+      description: "One or more HTTP 404 errors have occurred in the last minute."
+

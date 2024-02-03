@@ -6,6 +6,7 @@ services:
     image: rgjcastrillon/http-dummy-service:0.1.0
     networks:
       - backend
+    hostname: http-dummy
 
   caddy:
     container_name: caddy
@@ -15,8 +16,10 @@ services:
       - "2019:2019"
     networks:
       - backend
+    hostname: caddy
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
-
 networks:
   backend:
+    name: backend
+    driver: bridge

@@ -1,0 +1,20 @@
+global:
+  smtp_smarthost: "smtp.gmail.com:587"
+  smtp_from: "sender@gmail.com"
+  smtp_auth_username: "sender@gmail.com"
+  smtp_auth_password: "<password>"
+  smtp_auth_identity: ""
+
+route:
+  receiver: "email-notifications"
+
+receivers:
+- name: "email-notifications"
+  email_configs:
+  - to: "receiver@gmail.com"
+    from: "sender@gmail.com"
+    smarthost: "smtp.gmail.com:587"
+    auth_username: "sender@gmail.com"
+    auth_password: "<password>"
+    auth_identity: ""
+    send_resolved: true

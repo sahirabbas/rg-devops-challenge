@@ -2,6 +2,7 @@
   servers {
       metrics
   }
+  admin :2019
 }
 
 :80 {
