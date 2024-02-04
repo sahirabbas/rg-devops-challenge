@@ -534,3 +534,79 @@ Given that we configured the dashboard and Prometheus as data sources during dep
 
 ![Example Image](./images/Grafana_dashboard.png)
 
+## How to Accommodate New Application Metrics. 
+
+Due to the independent configuration of the monitoring solution, incorporating new application metrics into our monitoring setup becomes a seamless process.
+
+To integrate new application metrics, the first step is to assign a static network name for the new applications, mirroring the approach used for our Caddy deployment. Following this, the network must be linked in the docker-compose file. Once the docker-compose configuration is updated, the next crucial step is to include the new scrape target in the prometheus/prometheus.yml file.
+
+```yaml
+# monitoring/docker-compose.yaml
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - 9090:9090
+    networks:
+      - backend
+      - monitoring
+      - <ADD NEW NETWORK NAME HERE>
+    restart: always
+...
+...  
+
+networks:
+  backend:
+    external: true
+  <ADD NEW NETWORK NAME HERE>:
+    external: true
+  monitoring:
+    name: monitoring
+    driver: bridge
+
+```
+Update the scrape target configuration in the prometheus/prometheus.yml file.
+
+```yaml
+# prometheus/prometheus.yml
+global:
+  scrape_interval: 5s
+
+scrape_configs:
+- job_name: 'prometheus'
+  static_configs:
+  - targets: ['localhost:9090']
+
+- job_name: 'caddy'
+  static_configs:
+  - targets: ['caddy:2019']
+
+- job_name: '<Provide a Name>'
+  static_configs:
+  - targets: ['<scrape_target>:<port_number>']
+
+```
+After completing the Prometheus configuration, proceed to add the requisite alerts in the prometheus/alerts.rules.yml file.
+
+```yaml
+# prometheus/alerts.rules.yml
+
+  - alert: <New Alert Name>
+    expr: <Rule Expression>
+    for: <duration>
+    labels:
+      severity: <Mention Severity>
+```
+Upon adding the alerts, incorporate the Grafana dashboard JSON file into the dashboard directory. This enables visualization of new application metrics in Grafana without necessitating any configuration adjustments to the Grafana settings.
+
+## Optional Improvements:
+
+To enhance deployment with minimal manual intervention, consider incorporating a Python or Bash script. Such a script would facilitate dynamic parameter passing, allowing configuration adjustments such as SMTP relay settings and new application network names with ease.
