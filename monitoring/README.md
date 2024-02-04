@@ -400,4 +400,137 @@ After completing the testing phase, we can dismantle the deployment. Later, we w
 
 ## Grafana
 
-Contents here
+Grafana is an open-source platform used for visualizing and analyzing metrics, logs, and data from various sources. It provides customizable dashboards, making it a popular tool for monitoring and observability in DevOps and system management.
+
+I utilize Grafana to visualize Caddy metrics sourced from Prometheus.
+
+To integrate Grafana into our monitoring solution, I will enhance the existing Docker Compose file initially created for Prometheus deployment. After the update, the Docker Compose configuration will appear as follows.
+
+```yaml
+version: '3.8'
+
+services:
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    volumes:
+      - ./prometheus:/etc/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+    ports:
+      - 9090:9090
+    networks:
+      - backend
+      - monitoring
+    restart: always
+
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    volumes:
+      - ./alertmanager:/etc/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - 9093:9093
+    networks:
+      - monitoring
+    restart: always
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    env_file:
+      - .env_grafana
+    volumes:
+      - ./grafana:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./dashboard:/etc/grafana/dashboards
+    ports:
+      - 3000:3000
+    networks:
+      - monitoring
+    restart: always
+
+networks:
+  backend:
+    external: true
+  monitoring:
+    name: monitoring
+    driver: bridge
+```
+
+In this setup, I bind data source configuration and dashboards as volumes, ensuring the persistence of configuration and dashboards. This approach facilitates the seamless relocation of the monitoring solution without concerns about data loss or configuration disruption.
+
+```yaml
+volumes:
+  - ./grafana:/var/lib/grafana
+  - ./grafana/provisioning:/etc/grafana/provisioning
+  - ./dashboard:/etc/grafana/dashboards
+```
+The data source configurations are housed in **./grafana/provisioning/prometheus.yml**, facilitating seamless Prometheus configuration as a data source on the fly, without requiring manual intervention. Additionally, dashboard configurations are stored in the **./dashboard** directory, enabling the deployment of ready-to-use Caddy dashboards on the fly.
+
+```yaml
+#grafana/provisioning/datasources/prometheus.yml
+apiVersion: 1
+
+datasources:
+- name: Prometheus
+  type: prometheus
+  access: proxy
+  orgId: 1
+  url: http://prometheus:9090
+  basicAuth: false
+  isDefault: true
+```
+
+Furthermore, I am conveying the Grafana admin password and data path through environment variables using the .env_grafana file. This approach simplifies the process of changing passwords and other configurations in the future. If additional variables need to be passed, updating the .env_grafana file exclusively suffices for Grafana variables.
+
+```bash
+# .env_grafana
+
+GF_SECURITY_ADMIN_PASSWORD=admin
+GF_SECURITY_ALLOW_EMBEDDING=true
+GF_PATHS_DATA=/var/lib/grafana
+```
+Prior to deployment, it is imperative to adjust the ownership and permissions of the Grafana directory. Failure to do so may result in the Grafana Docker container encountering issues.
+
+```bash
+sudo chown -R 472:472 ./grafana
+sudo chmod -R 0770 ./grafana
+```
+The command sudo chown -R 472:472 ./grafana changes the ownership of the ./grafana
+
+472:472: Specifies the user and group ownership to be set. In our case, we have to set  both the user ID (UID) and group ID (GID) to 472
+
+The command sudo chmod -R 0770 ./grafana changes the permissions of the ./grafana directory and its contents.
+
+This command grants the owner and group full read, write, and execute permissions while explicitly denying any permission to others.
+
+After configuring the permissions, the monitoring solution can be deployed effortlessly using the command `docker-compose up -d`.
+
+```bash
+SahirAbbas@sahir-pc:~/workshop/rg-devops-challenge/monitoring$ docker-compose up -d 
+[+] Running 3/4
+ ⠧ Network monitoring      Created                                                                                                                                      0.7s 
+ ✔ Container alertmanager  Started                                                                                                                                      0.5s 
+ ✔ Container grafana       Started                                                                                                                                      0.3s 
+ ✔ Container prometheus    Started
+```
+To verify the status of the containers, execute the `docker ps` command. If all components are up and running, access the Grafana UI through http://127.0.0.1:3000.
+
+```bash
+CONTAINER ID   IMAGE                                    COMMAND                  CREATED       STATUS       PORTS                                                                                                NAMES
+1e0ff2db3ddc   grafana/grafana:latest                   "/run.sh"                2 hours ago   Up 2 hours   0.0.0.0:3000->3000/tcp, :::3000->3000/tcp                                                            grafana
+4711f03c66bf   prom/alertmanager:latest                 "/bin/alertmanager -…"   2 hours ago   Up 2 hours   0.0.0.0:9093->9093/tcp, :::9093->9093/tcp                                                            alertmanager
+e582f10f677e   prom/prometheus:latest                   "/bin/prometheus --c…"   2 hours ago   Up 2 hours   0.0.0.0:9090->9090/tcp, :::9090->9090/tcp                                                            prometheus
+756112576a0e   caddy:latest                             "caddy run --config …"   5 hours ago   Up 5 hours   443/tcp, 443/udp, 0.0.0.0:2019->2019/tcp, :::2019->2019/tcp, 0.0.0.0:8080->80/tcp, :::8080->80/tcp   caddy
+f26f5e2192e7   rgjcastrillon/http-dummy-service:0.1.0   "./dummy-service"        5 hours ago   Up 5 hours   8080/tcp                                                                                             http-dummy
+```
+
+Given that we configured the dashboard and Prometheus as data sources during deployment, accessing the dashboard is straightforward by logging into Grafana. Navigate to the "Dashboards" section, select the Caddy Dashboard, and experience a comprehensive display of valuable information.
+
+![Example Image](./images/Grafana_dashboard.png)
+
