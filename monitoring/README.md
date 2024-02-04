@@ -609,4 +609,14 @@ Upon adding the alerts, incorporate the Grafana dashboard JSON file into the das
 
 ## Optional Improvements:
 
-To enhance deployment with minimal manual intervention, consider incorporating a Python or Bash script. Such a script would facilitate dynamic parameter passing, allowing configuration adjustments such as SMTP relay settings and new application network names with ease.
+* **Streamline Deployment with Script Automation:**
+
+Incorporate a Python or Bash script to minimize manual intervention during deployment. This script facilitates dynamic parameter passing, simplifying configuration adjustments such as SMTP relay settings and new application network names with ease.
+
+* **Leverage Kubernetes for Orchestrating Scalable Applications:**
+
+Implementing Kubernetes provides a robust orchestration solution as applications grow. Its container orchestration capabilities streamline deployment, scaling, and management, contributing to better overall operational efficiency.
+
+* **Secure Credential Management:**
+
+Ensure sensitive credentials, such as SMTP relay information, are handled securely. Convert critical credentials into environment variables to avoid inadvertent exposure in version control systems. Additionally, consider utilizing tools like Vault for an extra layer of security in managing and safeguarding sensitive information.
